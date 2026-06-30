@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickShop | Live Integrated Search</title>
+    <!-- Google Fonts: Inter for a high-end, premium tech aesthetic -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased pb-24">
+
+    <!-- --- MODULE: NAVIGATION BAR --- -->
+    <nav class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="#" onclick="resetSearch(event)" class="text-lg font-black tracking-tight text-slate-900 flex items-center gap-2">
+                <i data-lucide="shopping-bag" class="w-5 h-5 text-emerald-600"></i> QuickShop
+            </a>
+            
+            <button id="cart-btn" class="relative p-2 text-slate-600 hover:text-emerald-600 transition-colors">
+                <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                <span id="cart-count" class="absolute top-0 right-0 bg-emerald-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center hidden">0</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- --- MODULE: HERO BANNER --- -->
+    <header id="hero-banner" class="bg-gradient-to-br from-slate-900 to-slate-800 text-white py-14 px-6 text-center transition-all duration-300">
+        <div class="max-w-xl mx-auto">
+            <span class="text-emerald-400 text-xs font-semibold tracking-widest uppercase mb-2 block">New Arrivals</span>
+            <h1 class="text-2xl sm:text-4xl font-bold mb-2 tracking-tight">The Essentials Collection</h1>
+            <p class="text-slate-300 text-xs sm:text-sm mb-5 font-normal max-w-sm mx-auto leading-relaxed">Sustainably crafted everyday carry pieces engineered for the modern lifestyle.</p>
+            <a href="#catalog" class="inline-block bg-white text-slate-900 text-xs font-semibold px-5 py-2.5 rounded-lg shadow-sm hover:bg-slate-50 transition duration-200">Shop Collection</a>
+        </div>
+    </header>
+
+    <!-- --- MODULE: PRODUCT CATALOG --- -->
+    <main id="catalog" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-2">
+            <h2 id="catalog-title" class="text-base font-semibold text-slate-900 flex items-center gap-2">
+                <i data-lucide="sparkles" class="text-emerald-600 w-4 h-4"></i> Curated Products
+            </h2>
+            <!-- Dynamic State Feedbacks -->
+            <div id="search-feedback" class="hidden items-center gap-2 text-xs bg-slate-100 border border-slate-200 text-slate-600 px-3 py-1 rounded-full w-max">
+                <span id="search-term-text"></span>
+                <button onclick="resetSearch(event)" class="hover:text-red-500 font-bold transition cursor-pointer"><i data-lucide="x" class="w-3 h-3"></i></button>
+            </div>
+        </div>
+        
+        <!-- Live Grid Surface -->
+        <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            <!-- Dynamically populated via JavaScript -->
+        </div>
+
+        <!-- Inline Empty Search View -->
+        <div id="empty-search-state" class="hidden text-center py-20 flex flex-col items-center justify-center gap-3">
+            <div class="p-4 bg-slate-100 rounded-full text-slate-400">
+                <i data-lucide="search-x" class="w-8 h-8 stroke-1.5"></i>
+            </div>
+            <h3 class="text-sm font-semibold text-slate-800">No match found</h3>
+            <p class="text-xs text-slate-400 max-w-xs">We couldn't find anything matching your search term. Double check spelling or filter values.</p>
+            <button onclick="resetSearch(event)" class="mt-2 bg-slate-900 text-white text-xs px-4 py-2 rounded-lg font-medium hover:bg-slate-800 transition cursor-pointer">Clear Search</button>
+        </div>
+    </main>
+
+    <!-- --- MODULE: PREMIUM FLOATING PILL BOTTOM BAR --- -->
+    <div class="fixed bottom-4 inset-x-0 z-50 px-4 flex flex-col items-center pointer-events-none">
+        <!-- Sleek Low-Footprint Dynamic Controller -->
+        <div id="bottom-bar-pill" class="w-full max-w-[160px] bg-slate-900/95 backdrop-blur-lg text-white rounded-full shadow-lg px-2 flex items-center justify-between pointer-events-auto h-10 border border-white/10 transition-all duration-300 ease-in-out">
+            
+            <!-- Home Icon Navigation Trigger -->
+            <button id="home-nav-btn" onclick="resetSearch(event)" class="text-slate-400 p-2 hover:text-white transition shrink-0 cursor-pointer"><i data-lucide="home" class="w-4 h-4"></i></button>
+
+            <!-- Expanding Search Shell -->
+            <div id="search-box-container" class="flex-1 flex justify-end items-center w-full">
+                <!-- Collapsed State Button -->
+                <button id="search-trigger-btn" class="p-2 text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </button>
+
+                <!-- Fully Expanded Active Input Field -->
+                <div id="search-input-wrapper" class="w-full hidden items-center px-2 h-8">
+                    <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0"></i>
+                    <input type="text" id="search-input" placeholder="Type to filter page..." class="w-full bg-transparent text-xs text-white focus:outline-none placeholder-slate-500">
+                    <button id="search-close-btn" class="text-slate-400 hover:text-white ml-2 shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- --- MODULE: SHOPPING CART SLIDEOUT PANEL --- -->
+    <div id="cart-sidebar" class="fixed inset-0 z-50 overflow-hidden hidden" role="dialog" aria-modal="true">
+        <div id="cart-overlay" class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"></div>
+        <div class="fixed inset-y-0 right-0 max-w-full flex pl-4">
+            <div class="w-screen max-w-sm bg-white shadow-xl flex flex-col justify-between">
+                <div class="px-4 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <h2 class="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="shopping-cart" class="w-4 h-4 text-slate-500"></i> Shopping Bag
+                    </h2>
+                    <button id="close-cart-btn" class="text-slate-400 hover:text-slate-600 transition">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-4 space-y-4" id="cart-items-container">
+                    <!-- Dynamic Items -->
+                </div>
+
+                <div class="border-t border-slate-100 px-4 py-4 bg-slate-50 space-y-4">
+                    <div id="checkout-form-container" class="hidden space-y-2.5">
+                        <h3 class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Shipping Information</h3>
+                        <input type="text" id="cust-name" placeholder="Full Name" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 transition">
+                        <input type="tel" id="cust-phone" placeholder="WhatsApp Number (e.g., 923001234567)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 transition">
+                    </div>
+
+                    <div class="flex justify-between text-xs font-semibold text-slate-900 pt-1">
+                        <p>Subtotal</p>
+                        <p id="cart-total" class="text-sm font-bold text-slate-900">Rs. 0</p>
+                    </div>
+                    <button id="checkout-btn" class="w-full bg-emerald-600 text-white rounded-lg py-3 px-4 text-center font-medium hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-xs flex items-center justify-center gap-2 transition duration-150 cursor-pointer">
+                        <i data-lucide="send" class="w-3.5 h-3.5"></i> <span id="btn-text">Proceed to Checkout</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- --- JAVASCRIPT LOGIC ENGINE --- -->
+    <script>
+        // 1. DATA LAYER
+        const PRODUCTS = [
+            { id: 1, name: "The Minimalist Leather Watch", price: 4500, image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80", category: "Accessories" },
+            { id: 2, name: "Premium Wireless Headphones", price: 8500, image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80", category: "Electronics" },
+            { id: 3, name: "Suede Leather Duffle Bag", price: 3800, image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&auto=format&fit=crop&q=80", category: "Travel" },
+            { id: 4, name: "Matte Ceramic Desk Mug", price: 1200, image: "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=600&auto=format&fit=crop&q=80", category: "Home" }
+        ];
+
+        // 2. RUNTIME STATE
+        let cart = JSON.parse(localStorage.getItem('quickshop_cart')) || [];
+        let isFormVisible = false;
+        let currentSearchQuery = "";
+
+        // 3. UI ELEMENT SELECTORS
+        const productGrid = document.getElementById('product-grid');
+        const emptySearchState = document.getElementById('empty-search-state');
+        const catalogTitle = document.getElementById('catalog-title');
+        const searchFeedback = document.getElementById('search-feedback');
+        const searchTermText = document.getElementById('search-term-text');
+        const heroBanner = document.getElementById('hero-banner');
+
+        const cartSidebar = document.getElementById('cart-sidebar');
+        const cartItemsContainer = document.getElementById('cart-items-container');
+        const cartCount = document.getElementById('cart-count');
+        const cartTotal = document.getElementById('cart-total');
+        const cartBtn = document.getElementById('cart-btn');
+        const closeCartBtn = document.getElementById('close-cart-btn');
+        const cartOverlay = document.getElementById('cart-overlay');
+        const checkoutBtn = document.getElementById('checkout-btn');
+        const btnText = document.getElementById('btn-text');
+        const checkoutFormContainer = document.getElementById('checkout-form-container');
+
+        // Dynamic Nav Pill Controllers
+        const bottomBarPill = document.getElementById('bottom-bar-pill');
+        const searchTriggerBtn = document.getElementById('search-trigger-btn');
+        const searchInputWrapper = document.getElementById('search-input-wrapper');
+        const searchCloseBtn = document.getElementById('search-close-btn');
+        const searchInput = document.getElementById('search-input');
+        const homeNavBtn = document.getElementById('home-nav-btn');
+
+        // 4. RENDERING & FILTERING PIPELINE (Integrated into the primary interface grid)
+        function renderProducts() {
+            const filtered = PRODUCTS.filter(p => p.name.toLowerCase().includes(currentSearchQuery));
+
+            if (filtered.length === 0) {
+                productGrid.classList.add('hidden');
+                emptySearchState.classList.remove('hidden');
+            } else {
+                productGrid.classList.remove('hidden');
+                emptySearchState.classList.add('hidden');
+                
+                productGrid.innerHTML = filtered.map(product => `
+                    <div class="bg-white rounded-xl border border-slate-100 shadow-xs overflow-hidden flex flex-col group transition hover:shadow-md duration-300">
+                        <div class="relative overflow-hidden aspect-square bg-slate-50">
+                            <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-102 transition duration-500 ease-out">
+                            <span class="absolute top-2 left-2 bg-white/90 backdrop-blur-md text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded text-slate-600 border border-slate-100 shadow-3xs">${product.category}</span>
+                        </div>
+                        <div class="p-3 sm:p-4 flex-1 flex flex-col justify-between">
+                            <div>
+                                <h3 class="text-xs sm:text-sm font-medium text-slate-800 tracking-tight line-clamp-2 leading-tight">${product.name}</h3>
+                                <p class="text-sm sm:text-base font-bold text-slate-900 mt-1.5">Rs. ${product.price.toLocaleString()}</p>
+                            </div>
+                            <button onclick="addToCart(${product.id})" class="mt-3 w-full bg-emerald-600 text-white font-medium py-2 rounded-lg text-xs flex items-center justify-center gap-1 hover:bg-emerald-700 transition shadow-3xs cursor-pointer">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Add to Bag
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Sync structural header contextual alerts
+            if (currentSearchQuery) {
+                catalogTitle.innerHTML = `<i data-lucide="search" class="text-emerald-600 w-4 h-4"></i> Search Results`;
+                searchTermText.textContent = `Results for "${currentSearchQuery}"`;
+                searchFeedback.classList.remove('hidden');
+                searchFeedback.classList.add('flex');
+            } else {
+                catalogTitle.innerHTML = `<i data-lucide="sparkles" class="text-emerald-600 w-4 h-4"></i> Curated Products`;
+                searchFeedback.classList.add('hidden');
+                searchFeedback.classList.remove('flex');
+            }
+            
+            lucide.createIcons();
+        }
+
+        // Live input handling loop
+        function handleSearchInput(e) {
+            currentSearchQuery = e.target.value.toLowerCase().trim();
+            renderProducts();
+        }
+
+        function expandSearch() {
+            bottomBarPill.style.maxWidth = "300px"; 
+            homeNavBtn.classList.add('hidden');
+            searchTriggerBtn.classList.add('hidden');
+            searchInputWrapper.classList.remove('hidden');
+            searchInputWrapper.classList.add('flex');
+            searchInput.focus();
+            
+            // Smoothly roll up the viewport focus directly into catalog view when search goes alive
+            document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function collapseSearch() {
+            bottomBarPill.style.maxWidth = "160px"; 
+            searchInputWrapper.classList.add('hidden');
+            searchInputWrapper.classList.remove('flex');
+            homeNavBtn.classList.remove('hidden');
+            searchTriggerBtn.classList.remove('hidden');
+        }
+
+        function resetSearch(e) {
+            if(e) e.preventDefault();
+            currentSearchQuery = "";
+            searchInput.value = "";
+            collapseSearch();
+            renderProducts();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 5. SHOPPING CART SYSTEM MANAGEMENT
+        function updateCartUI() {
+            const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+            if(totalItems > 0) {
+                cartCount.textContent = totalItems;
+                cartCount.classList.remove('hidden');
+                checkoutBtn.removeAttribute('disabled');
+            } else {
+                cartCount.classList.add('hidden');
+                checkoutBtn.setAttribute('disabled', 'true');
+                hideForm();
+            }
+
+            const totalPrice = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+            cartTotal.textContent = `Rs. ${totalPrice.toLocaleString()}`;
+
+            if (cart.length === 0) {
+                cartItemsContainer.innerHTML = `
+                    <div class="text-center py-16 text-slate-400 flex flex-col items-center justify-center gap-2">
+                        <i data-lucide="shopping-bag" class="w-8 h-8 stroke-1 text-slate-300"></i>
+                        <p class="text-xs">Your shopping bag is completely empty</p>
+                    </div>`;
+            } else {
+                cartItemsContainer.innerHTML = cart.map(item => `
+                    <div class="flex items-center gap-3.5 py-3 border-b border-slate-50 last:border-0 text-xs">
+                        <img src="${item.image}" alt="${item.name}" class="w-12 h-12 object-cover rounded-lg bg-slate-50 border border-slate-100">
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-medium text-slate-800 truncate tracking-tight">${item.name}</h4>
+                            <p class="text-slate-500 font-normal mt-0.5">Rs. ${item.price.toLocaleString()}</p>
+                            <div class="flex items-center gap-2 mt-1.5">
+                                <button onclick="changeQuantity(${item.id}, -1)" class="p-1 rounded bg-slate-50 hover:bg-slate-100 text-slate-500 transition cursor-pointer"><i data-lucide="minus" class="w-2.5 h-2.5"></i></button>
+                                <span class="font-semibold text-xs text-slate-800 w-4 text-center">${item.quantity}</span>
+                                <button onclick="changeQuantity(${item.id}, 1)" class="p-1 rounded bg-slate-50 hover:bg-slate-100 text-slate-500 transition cursor-pointer"><i data-lucide="plus" class="w-2.5 h-2.5"></i></button>
+                            </div>
+                        </div>
+                        <button onclick="removeFromCart(${item.id})" class="text-slate-300 hover:text-red-500 p-1 transition cursor-pointer"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                `).join('');
+            }
+            lucide.createIcons();
+            localStorage.setItem('quickshop_cart', JSON.stringify(cart));
+        }
+
+        function addToCart(productId) {
+            const product = PRODUCTS.find(p => p.id === productId);
+            const cartItem = cart.find(item => item.id === productId);
+
+            if (cartItem) {
+                cartItem.quantity += 1;
+            } else {
+                cart.push({ ...product, quantity: 1 });
+            }
+            updateCartUI();
+            toggleCart(true);
+        }
+
+        function changeQuantity(productId, delta) {
+            const cartItem = cart.find(item => item.id === productId);
+            if (cartItem) {
+                cartItem.quantity += delta;
+                if (cartItem.quantity <= 0) {
+                    removeFromCart(productId);
+                    return;
+                }
+            }
+            updateCartUI();
+        }
+
+        function removeFromCart(productId) {
+            cart = cart.filter(item => item.id !== productId);
+            updateCartUI();
+        }
+
+        function toggleCart(open) {
+            if(open) cartSidebar.classList.remove('hidden');
+            else {
+                cartSidebar.classList.add('hidden');
+                hideForm();
+            }
+        }
+
+        function hideForm() {
+            isFormVisible = false;
+            checkoutFormContainer.classList.add('hidden');
+            btnText.textContent = "Proceed to Checkout";
+        }
+
+        function handleCheckout() {
+            if (!isFormVisible) {
+                isFormVisible = true;
+                checkoutFormContainer.classList.remove('hidden');
+                btnText.textContent = "Place Order via WhatsApp";
+                document.getElementById('cust-name').focus();
+                return;
+            }
+
+            const name = document.getElementById('cust-name').value.trim();
+            const phone = document.getElementById('cust-phone').value.trim().replace(/\D/g, '');
+
+            if (!name || !phone) {
+                alert("⚠️ Please fill out your Delivery Name and valid WhatsApp Contact Number.");
+                return;
+            }
+
+            const orderNum = `QS-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+            const totalPrice = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+            
+            let msg = `🛍️ *NEW ORDER PLACED* 🛍️\n`;
+            msg += `--------------------------------\n`;
+            msg += `🆔 *Order Reference:* #${orderNum}\n`;
+            msg += `👤 *Customer Name:* ${name}\n`;
+            msg += `--------------------------------\n\n`;
+            msg += `📦 *Selected Items:* \n`;
+            
+            cart.forEach(item => {
+                msg += `• ${item.name} x${item.quantity} — _Rs. ${(item.price * item.quantity).toLocaleString()}_\n`;
+            });
+            
+            msg += `\n--------------------------------\n`;
+            msg += `💰 *Grand Total Amount:* *Rs. ${totalPrice.toLocaleString()}*\n`;
+            msg += `--------------------------------\n`;
+            msg += `🚀 _Thank you for shopping with QuickShop! Your order is being processed via merchant review._`;
+
+            const whatsappURL = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+            
+            alert("🎉 Redirecting to WhatsApp to submit your secure verification receipt details!");
+            window.open(whatsappURL, '_blank');
+            
+            cart = [];
+            document.getElementById('cust-name').value = '';
+            document.getElementById('cust-phone').value = '';
+            updateCartUI();
+            toggleCart(false);
+        }
+
+        // 6. GLOBAL EVENT BINDINGS
+        cartBtn.addEventListener('click', () => toggleCart(true));
+        closeCartBtn.addEventListener('click', () => toggleCart(false));
+        cartOverlay.addEventListener('click', () => toggleCart(false));
+        checkoutBtn.addEventListener('click', handleCheckout);
+        
+        searchTriggerBtn.addEventListener('click', expandSearch);
+        searchCloseBtn.addEventListener('click', collapseSearch);
+        searchInput.addEventListener('input', handleSearchInput);
+
+        document.addEventListener("DOMContentLoaded", () => {
+            renderProducts();
+            updateCartUI();
+        });
+    </script>
+</body>
+</html>
