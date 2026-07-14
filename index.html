@@ -1,15 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuickShop | Live Integrated Search & Dashboard</title>
+    <title>QuickShop | Cloud Sync Integrated Search & Control Centre</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        .cart-step { transition: transform 0.3s ease, opacity 0.3s ease; }
+        .hidden-step { display: none !important; }
         body { font-family: 'Inter', sans-serif; }
         .line-clamp-2 {
             display: -webkit-box;
@@ -17,14 +19,41 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+        /* Centering Container */
+#loading-spinner {
+  display: flex;
+  flex-direction: column; /* Stack the spinner wheel and text vertically */
+  justify-content: center; /* Center horizontally */
+  align-items: center;     /* Center vertically */
+  min-height: 200px;       /* Gives it some space, or use 100vh for full-screen */
+  width: 100%;
+  font-family: sans-serif;
+  gap: 15px;               /* Space between spinner and text */
+}
+
+/* The Animated Spinner Wheel */
+.spinner-wheel {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;       /* Light grey background circle */
+  border-top: 5px solid #3498db;   /* Blue spinning segment */
+  border-radius: 50%;              /* Makes it a circle */
+  animation: spin 1s linear infinite; /* Keeps it rotating */
+}
+
+/* Rotation Animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased pb-24 md:pb-12">
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen h-full flex flex-col pb-28 md:pb-12">
 
-    <nav class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100">
+    <nav id="global-sticky-navbar" class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-slate-100 z-40 transition-all duration-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <a href="#" onclick="resetSearch(event)" class="text-lg font-black tracking-tight text-slate-900 flex items-center gap-2">
-                <i data-lucide="shopping-bag" class="w-5 h-5 text-emerald-600"></i> QuickShop
+                <i data-lucide="shopping-bag" class="w-5 h-5 text-emerald-600"></i> QuickShop <span class="text-[9px] px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-semibold uppercase tracking-wider">Cloud</span>
             </a>
             
             <div class="flex items-center gap-2 sm:gap-4">
@@ -32,7 +61,7 @@
                     <i data-lucide="store" class="w-3.5 h-3.5"></i> <span class="hidden sm:inline">Store</span>
                 </button>
                 <button id="nav-dashboard-btn" onclick="switchView('dashboard')" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-slate-500 hover:text-slate-900 transition flex items-center gap-1 cursor-pointer">
-                    <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i> <span class="hidden sm:inline">Dashboard</span>
+                    <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i> <span class="hidden sm:inline">Control Centre</span>
                 </button>
                 
                 <span class="h-4 w-[1px] bg-slate-200"></span>
@@ -45,182 +74,290 @@
         </div>
     </nav>
 
-    <div id="storefront-view" class="view-section">
-        <header id="hero-banner" class="bg-gradient-to-br from-slate-900 to-slate-800 text-white py-10 sm:py-14 px-4 sm:px-6 text-center transition-all duration-300">
-            <div class="max-w-xl mx-auto">
-                <span class="text-emerald-400 text-[10px] sm:text-xs font-semibold tracking-widest uppercase mb-2 block">New Arrivals</span>
-                <h1 class="text-2xl sm:text-4xl font-bold mb-2 tracking-tight">The Essentials Collection</h1>
-                <p class="text-slate-300 text-xs sm:text-sm mb-5 font-normal max-w-sm mx-auto leading-relaxed">Sustainably crafted everyday carry pieces engineered for the modern lifestyle.</p>
-                <a href="#catalog" class="inline-block bg-white text-slate-900 text-xs font-semibold px-5 py-2.5 rounded-lg shadow-sm hover:bg-slate-50 transition duration-200">Shop Collection</a>
-            </div>
-        </header>
-
-        <main id="catalog" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
-                <h2 id="catalog-title" class="text-base font-semibold text-slate-900 flex items-center gap-2">
-                    <i data-lucide="sparkles" class="text-emerald-600 w-4 h-4"></i> Curated Products
-                </h2>
-                <div id="search-feedback" class="hidden items-center gap-2 text-xs bg-slate-100 border border-slate-200 text-slate-600 px-3 py-1 rounded-full w-max">
-                    <span id="search-term-text"></span>
-                    <button onclick="resetSearch(event)" class="hover:text-red-500 font-bold transition cursor-pointer"><i data-lucide="x" class="w-3 h-3"></i></button>
-                </div>
-            </div>
-            
-            <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6"></div>
-
-            <div id="empty-search-state" class="hidden text-center py-20 flex flex-col items-center justify-center gap-3">
-                <div class="p-4 bg-slate-100 rounded-full text-slate-400">
-                    <i data-lucide="search-x" class="w-8 h-8 stroke-1.5"></i>
-                </div>
-                <h3 class="text-sm font-semibold text-slate-800">No match found</h3>
-                <p class="text-xs text-slate-400 max-w-xs">We couldn't find anything matching your search term. Double check spelling or filter values.</p>
-                <button onclick="resetSearch(event)" class="mt-2 bg-slate-900 text-white text-xs px-4 py-2 rounded-lg font-medium hover:bg-slate-800 transition cursor-pointer">Clear Search</button>
-            </div>
-        </main>
-
-        <div class="fixed bottom-4 inset-x-0 z-50 px-4 flex flex-col items-center pointer-events-none md:bottom-6">
-            <div id="bottom-bar-pill" class="w-full max-w-[160px] bg-slate-900/95 backdrop-blur-lg text-white rounded-full shadow-lg px-2 flex items-center justify-between pointer-events-auto h-10 border border-white/10 transition-all duration-300 ease-in-out">
-                <button id="home-nav-btn" onclick="resetSearch(event)" class="text-slate-400 p-2 hover:text-white transition shrink-0 cursor-pointer"><i data-lucide="home" class="w-4 h-4"></i></button>
-                <div id="search-box-container" class="flex-1 flex justify-end items-center w-full">
-                    <button id="search-trigger-btn" class="p-2 text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0">
-                        <i data-lucide="search" class="w-4 h-4"></i>
-                    </button>
-                    <div id="search-input-wrapper" class="w-full hidden items-center px-2 h-8">
-                        <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0"></i>
-                        <input type="text" id="search-input" placeholder="Type to filter page..." class="w-full bg-transparent text-xs text-white focus:outline-none placeholder-slate-500">
-                        <button id="search-close-btn" class="text-slate-400 hover:text-white ml-2 shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
-                    </div>
-                </div>
-            </div>
+    <div id="ticker-banner-container" class="mt-16 bg-emerald-600 text-white text-xs font-semibold overflow-hidden py-2.5 border-b border-emerald-700 min-h-[36px] flex items-center">
+        <div id="ticker-marquee-wrapper" class="flex whitespace-nowrap items-center h-full animate-marquee">
+            <span id="ticker-text-nodes" class="inline-flex items-center px-4 leading-none select-none">🚀 Google Sheets Live Database Connection Active • ⚡ Fast metropolitan routing enabled • 🔥 Local updates synchronized directly.</span>
         </div>
     </div>
 
-    <div id="dashboard-view" class="view-section hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-        <div class="mb-8 border-b border-slate-200 pb-5">
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Control Panel</h1>
-            <p class="text-xs text-slate-500 mt-1">Manage localized products, analyze catalog dimensions, and extract static production-ready source code arrays.</p>
+    <div class="flex-1">
+        
+        <div id="storefront-view" class="view-section">
+            <header id="hero-banner" class="bg-gradient-to-br from-slate-900 to-slate-800 text-white py-10 sm:py-14 px-4 sm:px-6 text-center transition-all duration-300">
+                <div class="max-w-xl mx-auto">
+                    <span class="text-emerald-400 text-[10px] sm:text-xs font-semibold tracking-widest uppercase mb-2 block">Enterprise Integration</span>
+                    <h1 class="text-2xl sm:text-4xl font-bold mb-2 tracking-tight">Cloud-Powered Storefront</h1>
+                    <p class="text-slate-300 text-xs sm:text-sm mb-5 font-normal max-w-sm mx-auto leading-relaxed">Secure data pipelines mapping directly into collaborative business frameworks.</p>
+                    <a href="#catalog" class="inline-block bg-white text-slate-900 text-xs font-semibold px-5 py-2.5 rounded-lg shadow-sm hover:bg-slate-50 transition duration-200">Shop Catalog</a>
+                </div>
+            </header>
+
+            <main id="catalog" class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+                
+                <div id="primary-store-catalog" class="space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
+                        <h2 id="catalog-title" class="text-base font-semibold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="sparkles" class="text-emerald-600 w-4 h-4"></i> Curated Products
+                        </h2>
+                        <div id="loading-spinner" style="display: none;">
+  <div class="spinner-wheel"></div>
+  <p>Loading products, please wait...</p>
+</div>
+
+<div id="product-list"></div>
+                        <div id="search-feedback" class="hidden items-center gap-2 text-xs bg-slate-100 border border-slate-200 text-slate-600 px-3 py-1 rounded-full w-max">
+                            <span id="search-term-text"></span>
+                            <button onclick="resetSearch(event)" class="hover:text-red-500 font-bold transition cursor-pointer"><i data-lucide="x" class="w-3 h-3"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6"></div>
+
+                    <div id="empty-search-state" class="hidden text-center py-20 flex flex-col items-center justify-center gap-3">
+                        <div class="p-4 bg-slate-100 rounded-full text-slate-400">
+                            <i data-lucide="search-x" class="w-8 h-8 stroke-1.5"></i>
+                        </div>
+                        <h3 class="text-sm font-semibold text-slate-800">No match found</h3>
+                        <p class="text-xs text-slate-400 max-w-xs">We couldn't find anything matching your search term.</p>
+                        <button onclick="resetSearch(event)" class="mt-2 bg-slate-900 text-white text-xs px-4 py-2 rounded-lg font-medium hover:bg-slate-800 transition cursor-pointer">Clear Search</button>
+                    </div>
+                </div>
+
+                <div id="full-product-page" class="hidden space-y-10">
+                    <button onclick="closeProductDetailPage()" class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition mb-6 cursor-pointer">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Catalog
+                    </button>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 bg-white border border-slate-200 rounded-2xl p-4 sm:p-8 shadow-xs">
+                        <div class="bg-slate-50 border border-slate-100 rounded-xl overflow-hidden aspect-square flex items-center justify-center">
+                            <img id="detail-prod-img" src="" class="w-full h-full object-cover" onerror="this.src=FALLBACK_PLACEHOLDER">
+                        </div>
+
+                        <div class="flex flex-col justify-between py-2 space-y-6">
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-2">
+                                    <span id="detail-prod-cat" class="bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md">Category</span>
+                                    <span id="detail-prod-brand" class="text-xs text-slate-400 font-medium font-mono">Brand</span>
+                                </div>
+                                <h1 id="detail-prod-name" class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">Product Title</h1>
+                                <p id="detail-prod-price" class="text-lg sm:text-xl font-black text-slate-900">Rs. 0</p>
+                                
+                                <div class="border-t border-b border-slate-100 py-4 my-2 space-y-2">
+                                    <div class="flex items-center gap-2 text-xs text-slate-500">
+                                        <i data-lucide="truck" class="w-4 h-4 text-emerald-500"></i>
+                                        <span>Dispatch Ready • Direct System Logistics</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-xs text-slate-500">
+                                        <i data-lucide="shield-check" class="w-4 h-4 text-emerald-500"></i>
+                                        <span>Verified Secure Channel Routing Target</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button id="detail-add-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer shadow-sm text-xs">
+                                <i data-lucide="shopping-cart" class="w-4 h-4"></i> Add to Shopping Bag
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5 border-b border-slate-200 pb-2">
+                            <i data-lucide="package-search" class="w-4 h-4 text-emerald-600"></i> Related Discoveries & Similar Sellers
+                        </h3>
+                        <div id="similar-products-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+                    </div>
+                </div>
+
+            </main>
         </div>
 
-        <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Active Items</span>
-                    <i data-lucide="box" class="w-4 h-4 text-emerald-600"></i>
+        <div id="dashboard-view" class="view-section hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+            <div class="mb-8 border-b border-slate-200 pb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Control Centre</h1>
+                    <p class="text-xs text-slate-500 mt-1">Manage remote Google Sheets catalogs, dispatch multi-seller WhatsApp manifests, and trace financial records.</p>
                 </div>
-                <p id="stat-total-products" class="text-2xl font-bold text-slate-900 mt-2">0</p>
+                <button onclick="syncDataFromCloud()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer shadow-xs transition">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i> Sync Database
+                </button>
             </div>
-            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Inventory Asset Valuation</span>
-                    <i data-lucide="banknote" class="w-4 h-4 text-emerald-600"></i>
-                </div>
-                <p id="stat-total-value" class="text-2xl font-bold text-slate-900 mt-2">Rs. 0</p>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Categories Tracked</span>
-                    <i data-lucide="folder-tree" class="w-4 h-4 text-emerald-600"></i>
-                </div>
-                <p id="stat-total-categories" class="text-2xl font-bold text-slate-900 mt-2">0</p>
-            </div>
-        </section>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2 space-y-8">
-                <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
-                    <h3 class="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-4">
-                        <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-600"></i> Inject New Product
-                    </h3>
-                    <form id="add-product-form" onsubmit="handleCreateProduct(event)" class="space-y-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Product Title</label>
-                                <input type="text" id="dash-prod-name" required placeholder="e.g., Titanium Carabiner Keyring" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 transition">
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Category</label>
-                                <input type="text" id="dash-prod-cat" required placeholder="e.g., Accessories" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 transition">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Price (Rs.)</label>
-                                <input type="number" id="dash-prod-price" required min="1" placeholder="e.g., 2450" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 transition">
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Image Link (Web Address URL)</label>
-                                <input type="url" id="dash-prod-url" placeholder="https://example.com/image.jpg" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 transition">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Alternatively: Upload Local Image File</label>
-                            <input type="file" id="dash-prod-img" accept="image/*" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-emerald-600 transition file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
-                            <p class="text-[10px] text-slate-400 mt-1">If both fields are left empty, an elegant generic layout placeholder graphic will be utilized.</p>
-                        </div>
-                        <button type="submit" class="w-full sm:w-auto bg-slate-900 text-white rounded-lg py-2 px-5 font-semibold text-xs hover:bg-slate-800 transition cursor-pointer flex items-center justify-center gap-2">
-                            <i data-lucide="save" class="w-3.5 h-3.5"></i> Save Local Dataset Product
-                        </button>
-                    </form>
-                </div>
-
-                <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                            <i data-lucide="code" class="w-4 h-4 text-emerald-600"></i> Lean Code Source Compiler
-                        </h3>
-                        <button onclick="copyProductionCode()" class="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded hover:bg-emerald-100 transition cursor-pointer flex items-center gap-1">
-                            <i data-lucide="copy" class="w-3 h-3"></i> Copy Clean Array
-                        </button>
+            <section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Cloud Items</span>
+                        <i data-lucide="box" class="w-4 h-4 text-emerald-600"></i>
                     </div>
-                    <p class="text-xs text-slate-400 mb-3">Copy the unified matrix below into your main file to deploy your added products hardcoded straight onto GitHub Pages.</p>
-                    <textarea id="lean-code-box" readonly class="w-full h-48 bg-slate-900 text-emerald-400 font-mono text-[10px] p-4 rounded-xl focus:outline-none block leading-normal resize-none overflow-y-auto"></textarea>
+                    <p id="stat-total-products" class="text-xl font-bold text-slate-900 mt-2">0</p>
                 </div>
-            </div>
+                <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Value</span>
+                        <i data-lucide="banknote" class="w-4 h-4 text-emerald-600"></i>
+                    </div>
+                    <p id="stat-total-value" class="text-xl font-bold text-slate-900 mt-2">Rs. 0</p>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Orders Synced</span>
+                        <i data-lucide="file-text" class="w-4 h-4 text-blue-600"></i>
+                    </div>
+                    <p id="stat-total-orders" class="text-xl font-bold text-slate-900 mt-2">0</p>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Revenue Collected</span>
+                        <i data-lucide="trending-up" class="w-4 h-4 text-emerald-600"></i>
+                    </div>
+                    <p id="stat-total-revenue" class="text-xl font-bold text-emerald-600 mt-2">Rs. 0</p>
+                </div>
+            </section>
 
-            <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                        <i data-lucide="database" class="w-4 h-4 text-emerald-600"></i> Runtime Local Cache
-                    </h3>
-                    <button onclick="clearCustomCache()" class="text-red-500 hover:bg-red-50 p-1.5 rounded text-xs font-semibold flex items-center gap-1 transition cursor-pointer">
-                        <i data-lucide="trash" class="w-3 h-3"></i> Flush
-                    </button>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <div class="lg:col-span-2 space-y-8">
+                    <div class="bg-white border border-slate-200 rounded-xl shadow-xs p-5 space-y-4">
+                        <h3 class="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="clipboard-list" class="w-4 h-4 text-emerald-600"></i> Live Processed Orders Ledger
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-200 text-slate-400 text-[10px] uppercase font-bold tracking-wider bg-slate-50/50">
+                                        <th class="p-2.5">Order Info</th>
+                                        <th class="p-2.5">Customer & Items</th>
+                                        <th class="p-2.5">Route Hub Status</th>
+                                        <th class="p-2.5">Settlement</th>
+                                        <th class="p-2.5 text-right">Dispatch</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="live-orders-tbody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-slate-200 rounded-xl shadow-xs p-5">
+                        <h3 class="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-4">
+                            <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-600"></i> Inject New Product (Base64 Safe Upload)
+                        </h3>
+                        <form id="add-product-form" onsubmit="handleCreateProduct(event)" class="space-y-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Product Title</label>
+                                    <input type="text" id="dash-prod-name" required placeholder="e.g., Titanium Watch" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Category</label>
+                                    <input type="text" id="dash-prod-cat" required placeholder="e.g., Accessories" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Brand</label>
+                                    <input type="text" id="dash-prod-brand" placeholder="e.g., Apex" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Price (Rs.)</label>
+                                    <input type="number" id="dash-prod-price" required min="1" placeholder="e.g., 2500" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Routing Phone Target</label>
+                                    <input type="tel" id="dash-prod-whatsapp" placeholder="e.g., 923001234567" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Online Image URL</label>
+                                    <input type="url" id="dash-prod-url" placeholder="https://example.com/img.jpg" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Or Base64 Image Upload</label>
+                                <input type="file" id="dash-prod-img" accept="image/*" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-emerald-600 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                            </div>
+
+                            <button type="submit" class="bg-slate-900 text-white rounded-lg py-2 px-5 font-semibold text-xs hover:bg-slate-800 transition cursor-pointer flex items-center gap-2">
+                                <i data-lucide="save" class="w-3.5 h-3.5"></i> Save & Append to Sheet
+                            </button>
+                        </form>
+                    </div>
                 </div>
-                <div id="custom-products-list" class="space-y-3 max-h-[510px] overflow-y-auto pr-1"></div>
+
+                <div class="space-y-6">
+                    <div class="bg-white border border-slate-200 rounded-xl shadow-xs p-5">
+                        <h3 class="text-sm font-semibold text-slate-900 flex items-center justify-between mb-4">
+                            <span>Inventory Core</span>
+                            <i data-lucide="database" class="w-4 h-4 text-emerald-600"></i>
+                        </h3>
+                        <div id="dashboard-products-list" class="space-y-3 max-h-[510px] overflow-y-auto pr-1"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <div class="fixed bottom-4 inset-x-0 z-50 px-4 flex flex-col items-center pointer-events-none md:bottom-6">
+        <div id="bottom-bar-pill" class="w-full max-w-[160px] bg-slate-900/95 backdrop-blur-lg text-white rounded-full shadow-lg px-2 flex items-center justify-between pointer-events-auto h-10 border border-white/10 transition-all duration-300 ease-in-out">
+            <button id="home-nav-btn" onclick="resetSearch(event)" class="text-slate-400 p-2 hover:text-white transition shrink-0 cursor-pointer"><i data-lucide="home" class="w-4 h-4"></i></button>
+            <div id="search-box-container" class="flex-1 flex justify-end items-center w-full">
+                <button id="search-trigger-btn" class="p-2 text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </button>
+                <div id="search-input-wrapper" class="w-full hidden items-center px-2 h-8">
+                    <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0"></i>
+                    <input type="text" id="search-input" placeholder="Type to filter page..." class="w-full bg-transparent text-xs text-white focus:outline-none placeholder-slate-500">
+                    <button id="search-close-btn" class="text-slate-400 hover:text-white ml-2 shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                </div>
             </div>
         </div>
     </div>
 
     <div id="cart-sidebar" class="fixed inset-0 z-50 overflow-hidden hidden" role="dialog" aria-modal="true">
-        <div id="cart-overlay" class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"></div>
+        <div id="cart-overlay" class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity" onclick="closeCart()"></div>
         <div class="fixed inset-y-0 right-0 max-w-full flex pl-4">
-            <div class="w-screen max-w-sm bg-white shadow-xl flex flex-col justify-between">
-                <div class="px-4 py-4 border-b border-slate-100 flex items-center justify-between">
-                    <h2 class="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                        <i data-lucide="shopping-cart" class="w-4 h-4 text-slate-500"></i> Shopping Bag
-                    </h2>
-                    <button id="close-cart-btn" class="text-slate-400 hover:text-slate-600 transition cursor-pointer">
-                        <i data-lucide="x" class="w-4 h-4"></i>
-                    </button>
-                </div>
+            <div class="w-screen max-w-sm bg-white shadow-xl relative overflow-hidden">
+                
+                <div id="cart-main-panel" class="cart-step flex flex-col h-full justify-between">
+                    <div class="flex flex-col h-full overflow-hidden">
+                        <div class="px-4 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+                            <h2 class="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                                <i data-lucide="shopping-cart" class="w-4 h-4 text-slate-500"></i> Shopping Bag
+                            </h2>
+                            <button id="close-cart-btn" onclick="closeCart()" class="text-slate-400 hover:text-slate-600 transition cursor-pointer">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
 
-                <div class="flex-1 overflow-y-auto p-4 space-y-4" id="cart-items-container"></div>
-
-                <div class="border-t border-slate-100 px-4 py-4 bg-slate-50 space-y-4">
-                    <div id="checkout-form-container" class="hidden space-y-2.5">
-                        <h3 class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Shipping Information</h3>
-                        <input type="text" id="cust-name" placeholder="Full Name" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 transition">
-                        <input type="tel" id="cust-phone" placeholder="WhatsApp Number (e.g., 923001234567)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 transition">
+                        <div class="overflow-y-auto p-4 space-y-4 flex-1" id="cart-items-container"></div>
                     </div>
 
-                    <div class="flex justify-between text-xs font-semibold text-slate-900 pt-1">
-                        <p>Subtotal</p>
-                        <p id="cart-total" class="text-sm font-bold text-slate-900">Rs. 0</p>
+                    <div class="border-t border-slate-100 px-4 py-4 bg-slate-50 space-y-4 shrink-0">
+                        <div id="checkout-form-container-inputs" class="hidden space-y-2.5">
+                            <h3 class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Shipping Information</h3>
+                            <input type="text" id="cust-name" placeholder="Full Name" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 transition">
+                            <input type="tel" id="cust-phone" placeholder="WhatsApp Number (e.g. 923001234567)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 transition">
+                            
+                            <div class="relative flex items-center">
+                                <input type="text" id="cust-address" placeholder="Complete Delivery Address" class="w-full bg-white border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-xs focus:outline-none focus:border-emerald-600 transition">
+                                <button type="button" onclick="acquireGeoTag()" title="Fetch Coordinates" class="absolute right-2 text-slate-400 hover:text-emerald-600 p-1 transition cursor-pointer">
+                                    <i data-lucide="map-pin" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <input type="hidden" id="cust-geotag" value="">
+                        </div>
+
+                        <div class="flex justify-between text-xs font-semibold text-slate-900 pt-1">
+                            <p>Subtotal</p>
+                            <p id="cart-total" class="text-sm font-bold text-slate-900">Rs. 0</p>
+                        </div>
+
+                        <button id="checkout-btn" onclick="handleCheckout()" class="w-full bg-emerald-600 text-white rounded-lg py-3 px-4 text-center font-medium hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-xs flex items-center justify-center gap-2 transition duration-150 cursor-pointer">
+                            <i data-lucide="send" class="w-3.5 h-3.5"></i> <span id="btn-text">Proceed to Checkout</span>
+                        </button>
                     </div>
-                    <button id="checkout-btn" class="w-full bg-emerald-600 text-white rounded-lg py-3 px-4 text-center font-medium hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-xs flex items-center justify-center gap-2 transition duration-150 cursor-pointer">
-                        <i data-lucide="send" class="w-3.5 h-3.5"></i> <span id="btn-text">Proceed to Checkout</span>
-                    </button>
                 </div>
+
+                <div id="split-dispatch-panel" class="cart-step hidden-step absolute inset-0 bg-white z-10 p-4 flex flex-col justify-between h-full"></div>
             </div>
         </div>
     </div>
@@ -233,7 +370,7 @@
                 </div>
                 <div>
                     <h3 class="text-sm font-bold text-slate-900">Security Gatekeeper</h3>
-                    <p class="text-[11px] text-slate-400">Restricted Area Authentication Token Required</p>
+                    <p class="text-[11px] text-slate-400">Restricted Control Centre Authentication</p>
                 </div>
             </div>
             <div>
@@ -259,25 +396,54 @@
         </div>
     </div>
 
-    <script>
-        // 1. HARDCODED SYSTEM BASELINE DATA
-        const BASE_PRODUCTS = [
-            { id: 1, name: "The Minimalist Leather Watch", price: 4500, image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80", category: "Accessories" },
-            { id: 2, name: "Premium Wireless Headphones", price: 8500, image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80", category: "Electronics" },
-            { id: 3, name: "Suede Leather Duffle Bag", price: 3800, image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&auto=format&fit=crop&q=80", category: "Travel" },
-            { id: 4, name: "Matte Ceramic Desk Mug", price: 1200, image: "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=600&auto=format&fit=crop&q=80", category: "Home" }
-        ];
+    <footer id="site-footer" class="bg-slate-900 text-slate-400 text-xs py-12 border-t border-slate-800 w-full mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div class="space-y-3">
+                <span class="text-base font-black text-white flex items-center gap-2"><i data-lucide="shopping-bag" class="text-emerald-500 w-5 h-5"></i> QuickShop</span>
+                <p class="text-[11px] leading-relaxed text-slate-400">Google Sheets Integrated architecture tracking orders and sales dynamics via Chrome native notifications APIs.</p>
+            </div>
+            <div>
+                <h4 class="text-white font-semibold mb-3 tracking-wider uppercase text-[10px]">Product Clusters</h4>
+                <ul class="space-y-2 text-[11px]">
+                    <li><a href="#" onclick="resetSearch(event)" class="hover:text-emerald-400 transition">Premium Electronics</a></li>
+                    <li><a href="#" onclick="resetSearch(event)" class="hover:text-emerald-400 transition">Leather Accessories</a></li>
+                    <li><a href="#" onclick="resetSearch(event)" class="hover:text-emerald-400 transition">Minimal Interior Gear</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-white font-semibold mb-3 tracking-wider uppercase text-[10px]">Operational Integrations</h4>
+                <ul class="space-y-2 text-[11px]">
+                    <li><span class="flex items-center gap-1"><i data-lucide="database" class="w-3.5 h-3.5 text-emerald-500"></i> Google App Script API</span></li>
+                    <li><span class="flex items-center gap-1"><i data-lucide="bell" class="w-3.5 h-3.5 text-blue-500"></i> Webhook Notification Node</span></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-white font-semibold mb-3 tracking-wider uppercase text-[10px]">Secure Framework</h4>
+                <p class="text-[11px] text-slate-400 leading-relaxed">Financial ledger systems are gated behind a dynamic SHA-256 local dynamic authentication mechanism.</p>
+            </div>
+        </div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-800 mt-8 pt-6 text-center text-[10px] text-slate-500">
+            &copy; 2026 QuickShop Cloud Systems. All rights hardcoded.
+        </div>
+    </footer>
 
+    <script>
+        // ==========================================
+        // 1. DYNAMIC SYSTEM INTEGRATION LINKS
+        // ==========================================
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyvlhC45d8ag4wO7h75RP4R4nSIC9jQkd8hj0aC6_qqm2Tr9N88Bm9SYJWXF46gMAde3A/exec"; // <--- Insert Google Apps Script Web App Deployment URL here
+        const DEFAULT_WHATSAPP = "923001234567";
         const FALLBACK_PLACEHOLDER = "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&auto=format&fit=crop&q=80";
 
-        // 2. LIFECYCLE MEMORY DESK BOUNDS
-        let customProducts = JSON.parse(localStorage.getItem('quickshop_custom_products')) || [];
-        let PRODUCTS = [...BASE_PRODUCTS, ...customProducts];
+        // Local cache storage arrays
+        let PRODUCTS = [];
+        let ORDERS = [];
         let cart = JSON.parse(localStorage.getItem('quickshop_cart')) || [];
         let isFormVisible = false;
         let currentSearchQuery = "";
+        let selectedProduct = null;
 
-        // 3. UI ELEMENT SELECTORS
+        // Dom Elements References
         const productGrid = document.getElementById('product-grid');
         const emptySearchState = document.getElementById('empty-search-state');
         const catalogTitle = document.getElementById('catalog-title');
@@ -293,7 +459,6 @@
         const cartOverlay = document.getElementById('cart-overlay');
         const checkoutBtn = document.getElementById('checkout-btn');
         const btnText = document.getElementById('btn-text');
-        const checkoutFormContainer = document.getElementById('checkout-form-container');
 
         const bottomBarPill = document.getElementById('bottom-bar-pill');
         const searchTriggerBtn = document.getElementById('search-trigger-btn');
@@ -307,25 +472,100 @@
         const storefrontView = document.getElementById('storefront-view');
         const dashboardView = document.getElementById('dashboard-view');
 
-        // 4. ROUTING & INTERACTIVE SWITCH VIEW SYSTEM
+        // Request Chrome Desktop Notifications Access
+        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+            Notification.requestPermission();
+        }
+
+        function triggerLocalNotification(title, message) {
+            // Verify the browser actively supports the Desktop Notification API
+            if ('Notification' in window && Notification.permission === "granted") {
+                new Notification(title, { 
+                    body: message, 
+                    icon: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100" 
+                });
+            } else {
+                // Fallback gracefully to standard logging if unsupported or denied
+                console.log(`Live Event Alert: ${title} - ${message}`);
+            }
+        }
+        // Safely request Chrome Desktop Notifications Access
+        if ('Notification' in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+            Notification.requestPermission();
+        }
+
+        // ==========================================
+        // 2. CLOUD SYNCHRONIZATION ENGINE
+        // ==========================================
+        async function syncDataFromCloud() {
+            if (!SCRIPT_URL || SCRIPT_URL.includes("YOUR_SPREADSHEET")) {
+                console.warn("Using default static array; Google App Script URL not provided.");
+                PRODUCTS = [
+                    { id: 1001, name: "The Minimalist Leather Watch", price: 4500, image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80", category: "Accessories", whatsapp: DEFAULT_WHATSAPP, brand: "Chronos" },
+                    { id: 1002, name: "Premium Wireless Headphones", price: 8500, image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80", category: "Electronics", whatsapp: DEFAULT_WHATSAPP, brand: "AeroSound" },
+                    { id: 1003, name: "Suede Leather Duffle Bag", price: 3800, image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&auto=format&fit=crop&q=80", category: "Travel", whatsapp: DEFAULT_WHATSAPP, brand: "Vantage" }
+                ];
+                renderProducts();
+                return;
+            }
+
+            try {
+                // Fetch Products
+                const container = document.getElementById('product-container');
+const loader = document.getElementById('loading-spinner');
+
+try {
+    loader.style.display = 'flex'; // Show loader
+    const resProducts = await fetch(`${SCRIPT_URL}?action=getProducts`);
+    const jsonProducts = await resProducts.json();
+    
+    if (jsonProducts.status === "success") {
+        PRODUCTS = jsonProducts.data;
+        
+        // Hide loader and render products
+        loader.style.display = 'none';
+        renderProducts(PRODUCTS); // Your function to display products
+    }
+} catch (error) {
+    loader.innerHTML = "Failed to load products. Please try again.";
+    console.error(error);
+}
+
+                // Fetch Orders
+                const resOrders = await fetch(`${SCRIPT_URL}?action=getOrders`);
+                const jsonOrders = await resOrders.json();
+                if (jsonOrders.status === "success") {
+                    ORDERS = jsonOrders.data;
+                }
+
+                renderProducts();
+                renderDashboardMetrics();
+            } catch (error) {
+                console.error("Cloud synchronization error:", error);
+            }
+        }
+
+        // ==========================================
+        // 3. UI VIEW ROUTER & SHA-256 VAULT SECURITY
+        // ==========================================
         function switchView(viewName) {
             if (viewName === 'storefront') {
                 storefrontView.classList.remove('hidden');
                 dashboardView.classList.add('hidden');
                 navStorefrontBtn.className = "text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-900 transition flex items-center gap-1 cursor-pointer";
                 navDashboardBtn.className = "text-xs font-semibold px-2.5 py-1.5 rounded-lg text-slate-500 hover:text-slate-900 transition flex items-center gap-1 cursor-pointer";
+                closeProductDetailPage();
                 renderProducts();
             } else if (viewName === 'dashboard') {
-                const basePhone = document.getElementById('cust-phone').value.trim();
-                if (!basePhone) {
-                    showDeniedModal("🔒 Access Denied: Establish security baseline details via the shopping bag form interface before attempting control access.");
+                const baseName = document.getElementById('cust-name').value.trim();
+                if (!baseName) {
+                    showDeniedModal("🔒 Access Denied: Establish security baseline details via the shopping bag full name interface before attempting control access.");
                     return;
                 }
                 openSecurityModal();
             }
         }
 
-        // 4b. OBFUSCATED SECURITY VAULT & CRYPTO ENGINE
         function openSecurityModal() {
             const modal = document.getElementById('security-modal');
             const card = document.getElementById('security-modal-card');
@@ -367,18 +607,17 @@
 
             if (!inputToken) return;
 
-            const basePhone = document.getElementById('cust-phone').value.trim();
+            const baseName = document.getElementById('cust-name').value.trim();
             const now = new Date();
             const currentHour = String(now.getHours()).padStart(2, '0');
             const currentMinute = now.getMinutes();
             const roundedMinute = String(Math.floor(currentMinute / 5) * 5).padStart(2, '0');
             
-            const rawTargetSequence = `${basePhone}${currentHour}${roundedMinute}`;
+            const rawTargetSequence = `${baseName}${currentHour}${roundedMinute}`;
 
             const inputHash = await sha256(inputToken);
             const verifiedHash = await sha256(rawTargetSequence);
 
-            // Compare one-way cryptographical signatures instead of raw text strings
             if (inputHash === verifiedHash) {
                 storefrontView.classList.add('hidden');
                 dashboardView.classList.remove('hidden');
@@ -389,34 +628,45 @@
                 showDeniedModal("❌ Security validation failed. Authentication credential hash mismatch.");
             }
         }
-        // 5. RENDERING & FILTERING PIPELINE
-        function renderProducts() {
-            const filtered = PRODUCTS.filter(p => p.name.toLowerCase().includes(currentSearchQuery));
 
+        // ==========================================
+        // 4. RENDERING & FULL-PAGE PRODUCT DETAILS
+        // ==========================================
+        function renderProducts() {
+            const filtered = PRODUCTS.filter(p => 
+                p.name.toLowerCase().includes(currentSearchQuery) || 
+                (p.category && p.category.toLowerCase().includes(currentSearchQuery))
+            );
+            
             if (filtered.length === 0) {
                 productGrid.classList.add('hidden');
                 emptySearchState.classList.remove('hidden');
             } else {
                 productGrid.classList.remove('hidden');
                 emptySearchState.classList.add('hidden');
-                
-                productGrid.innerHTML = filtered.map(product => `
-                    <div class="bg-white rounded-xl border border-slate-100 shadow-xs overflow-hidden flex flex-col group transition hover:shadow-md duration-300">
-                        <div class="relative overflow-hidden aspect-square bg-slate-50">
-                            <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-102 transition duration-500 ease-out" onerror="this.src='${FALLBACK_PLACEHOLDER}'">
-                            <span class="absolute top-2 left-2 bg-white/90 backdrop-blur-md text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded text-slate-600 border border-slate-100 shadow-3xs">${product.category}</span>
-                        </div>
-                        <div class="p-3 sm:p-4 flex-1 flex flex-col justify-between">
-                            <div>
-                                <h3 class="text-xs sm:text-sm font-medium text-slate-800 tracking-tight line-clamp-2 leading-tight">${product.name}</h3>
-                                <p class="text-sm sm:text-base font-bold text-slate-900 mt-1.5">Rs. ${product.price.toLocaleString()}</p>
+
+                let combinedOutputMarkup = "";
+                filtered.forEach((product) => {
+                    combinedOutputMarkup += `
+                        <div onclick="openProductDetailPage(${product.id})" class="bg-white rounded-xl border border-slate-100 shadow-xs overflow-hidden flex flex-col group transition hover:shadow-md duration-300 cursor-pointer">
+                            <div class="relative overflow-hidden aspect-square bg-slate-50">
+                                <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-102 transition duration-500 ease-out" onerror="this.src='${FALLBACK_PLACEHOLDER}'">
+                                <span class="absolute top-2 left-2 bg-white/90 backdrop-blur-md text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded text-slate-600 border border-slate-100 shadow-3xs">${product.category}</span>
                             </div>
-                            <button onclick="addToCart(${product.id})" class="mt-3 w-full bg-emerald-600 text-white font-medium py-2 rounded-lg text-xs flex items-center justify-center gap-1 hover:bg-emerald-700 transition shadow-3xs cursor-pointer">
-                                <i data-lucide="plus" class="w-3 h-3"></i> Add to Bag
-                            </button>
+                            <div class="p-3 sm:p-4 flex-1 flex flex-col justify-between" onclick="event.stopPropagation();">
+                                <div onclick="openProductDetailPage(${product.id})">
+                                    <h3 class="text-xs sm:text-sm font-medium text-slate-800 tracking-tight line-clamp-2 leading-tight">${product.name}</h3>
+                                    <p class="text-sm sm:text-base font-bold text-slate-900 mt-1.5">Rs. ${Number(product.price).toLocaleString()}</p>
+                                </div>
+                                <button onclick="addToCart(${product.id}); event.stopPropagation();" class="mt-3 w-full bg-emerald-600 text-white font-medium py-2 rounded-lg text-xs flex items-center justify-center gap-1 hover:bg-emerald-700 transition shadow-3xs cursor-pointer">
+                                    <i data-lucide="plus" class="w-3 h-3"></i> Add to Bag
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                });
+
+                productGrid.innerHTML = combinedOutputMarkup;
             }
 
             if (currentSearchQuery) {
@@ -433,219 +683,262 @@
             lucide.createIcons();
         }
 
-        function handleSearchInput(e) {
-            currentSearchQuery = e.target.value.toLowerCase().trim();
-            renderProducts();
-        }
+        function openProductDetailPage(id) {
+            selectedProduct = PRODUCTS.find(p => Number(p.id) === id);
+            if (!selectedProduct) return;
 
-        function expandSearch() {
-            bottomBarPill.style.maxWidth = "300px"; 
-            homeNavBtn.classList.add('hidden');
-            searchTriggerBtn.classList.add('hidden');
-            searchInputWrapper.classList.remove('hidden');
-            searchInputWrapper.classList.add('flex');
-            searchInput.focus();
-            document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
-        }
+            document.getElementById('primary-store-catalog').classList.add('hidden');
+            document.getElementById('full-product-page').classList.remove('hidden');
 
-        function collapseSearch() {
-            bottomBarPill.style.maxWidth = "160px"; 
-            searchInputWrapper.classList.add('hidden');
-            searchInputWrapper.classList.remove('flex');
-            homeNavBtn.classList.remove('hidden');
-            searchTriggerBtn.classList.remove('hidden');
-        }
+            document.getElementById('detail-prod-img').src = selectedProduct.image;
+            document.getElementById('detail-prod-cat').textContent = selectedProduct.category;
+            document.getElementById('detail-prod-brand').textContent = selectedProduct.brand || "Independent Seller";
+            document.getElementById('detail-prod-name').textContent = selectedProduct.name;
+            document.getElementById('detail-prod-price').textContent = `Rs. ${Number(selectedProduct.price).toLocaleString()}`;
+            
+            document.getElementById('detail-add-btn').onclick = () => addToCart(selectedProduct.id);
 
-        function resetSearch(e) {
-            if(e) e.preventDefault();
-            currentSearchQuery = "";
-            searchInput.value = "";
-            collapseSearch();
-            switchView('storefront');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // 6. DASHBOARD CONTROL PANEL MOTORS
-        function renderDashboardMetrics() {
-            document.getElementById('stat-total-products').textContent = PRODUCTS.length;
-            const valuation = PRODUCTS.reduce((sum, p) => sum + p.price, 0);
-            document.getElementById('stat-total-value').textContent = `Rs. ${valuation.toLocaleString()}`;
-            const uniqueCats = [...new Set(PRODUCTS.map(p => p.category.toLowerCase()))].length;
-            document.getElementById('stat-total-categories').textContent = uniqueCats;
-
-            const listWrapper = document.getElementById('custom-products-list');
-            if(PRODUCTS.length === 0) {
-                listWrapper.innerHTML = `
-                    <div class="text-center py-10 text-slate-400 border border-dashed border-slate-200 rounded-xl">
-                        <p class="text-xs">No active catalog data detected.</p>
-                    </div>`;
+            // Populate Recommendation Carousel (from same category or vendor)
+            const related = PRODUCTS.filter(p => (p.category === selectedProduct.category || p.whatsapp === selectedProduct.whatsapp) && Number(p.id) !== selectedProduct.id).slice(0, 4);
+            const simGrid = document.getElementById('similar-products-grid');
+            
+            if (related.length === 0) {
+                simGrid.innerHTML = `<p class="text-xs text-slate-400 py-4 col-span-full text-center">No similar products currently tracked in this category segment.</p>`;
             } else {
-                listWrapper.innerHTML = `
-                    <div class="p-2 bg-slate-100 border border-slate-200 rounded-lg flex gap-2 mb-3">
-                        <button onclick="exportToExcel()" class="flex-1 bg-white border border-slate-200 hover:bg-slate-50 font-medium py-1.5 rounded text-[11px] text-slate-700 flex items-center justify-center gap-1 transition cursor-pointer">
-                            <i data-lucide="download" class="w-3 h-3 text-emerald-600"></i> Export Excel
-                        </button>
-                        <label class="flex-1 bg-white border border-slate-200 hover:bg-slate-50 font-medium py-1.5 rounded text-[11px] text-slate-700 flex items-center justify-center gap-1 transition cursor-pointer text-center">
-                            <i data-lucide="upload" class="w-3 h-3 text-blue-600"></i> Import Excel
-                            <input type="file" id="excel-import-input" accept=".csv" class="hidden" onchange="importFromExcel(event)">
-                        </label>
-                    </div>
-                ` + PRODUCTS.map(p => {
-                    const isCustom = customProducts.some(cp => cp.id === p.id);
-                    return `
-                    <div class="flex items-center justify-between border border-slate-100 rounded-lg p-2 bg-slate-50 text-xs mb-2">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <img src="${p.image}" class="w-8 h-8 object-cover rounded bg-white border shrink-0" onerror="this.src='${FALLBACK_PLACEHOLDER}'">
-                            <div class="min-w-0">
-                                <h4 class="font-medium text-slate-800 truncate">${p.name}</h4>
-                                <span class="text-[10px] text-slate-400">${p.category} • Rs.${p.price}</span>
-                            </div>
+                simGrid.innerHTML = related.map(p => `
+                    <div onclick="openProductDetailPage(${p.id})" class="bg-white rounded-lg border border-slate-100 p-2 cursor-pointer hover:shadow-xs transition flex flex-col justify-between">
+                        <img src="${p.image}" class="w-full aspect-square object-cover rounded-md mb-2" onerror="this.src='${FALLBACK_PLACEHOLDER}'">
+                        <div>
+                            <h4 class="text-[11px] font-semibold text-slate-800 line-clamp-2 leading-tight">${p.name}</h4>
+                            <p class="text-xs font-bold text-slate-900 mt-1">Rs. ${Number(p.price).toLocaleString()}</p>
                         </div>
-                        ${isCustom ? `
-                            <button onclick="removeCustomProduct(${p.id})" class="text-slate-400 hover:text-red-500 p-1 transition cursor-pointer"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-                        ` : `<span class="text-[9px] bg-slate-200 text-slate-500 font-semibold uppercase px-1 py-0.5 rounded shrink-0 scale-90">Core</span>`}
                     </div>
-                `}).join('');
+                `).join('');
             }
 
-            const codeBlock = `const PRODUCTS = ${JSON.stringify(PRODUCTS, null, 4)};`;
-            document.getElementById('lean-code-box').value = codeBlock;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             lucide.createIcons();
         }
 
-        function handleCreateProduct(e) {
+        function closeProductDetailPage() {
+            document.getElementById('primary-store-catalog').classList.remove('hidden');
+            document.getElementById('full-product-page').classList.add('hidden');
+            selectedProduct = null;
+        }
+
+        // ==========================================
+        // 5. CONTROL CENTRE METRICS & DATA MANAGEMENT
+        // ==========================================
+        function renderDashboardMetrics() {
+            const totalProdEl = document.getElementById('stat-total-products');
+            const totalValEl = document.getElementById('stat-total-value');
+            const totalOrdersEl = document.getElementById('stat-total-orders');
+            const totalRevEl = document.getElementById('stat-total-revenue');
+            const listWrapper = document.getElementById('dashboard-products-list');
+            const orderBody = document.getElementById('live-orders-tbody');
+
+            if (totalProdEl) totalProdEl.textContent = PRODUCTS.length;
+            const valuation = PRODUCTS.reduce((sum, p) => sum + Number(p.price), 0);
+            if (totalValEl) totalValEl.textContent = `Rs. ${valuation.toLocaleString()}`;
+
+            if (totalOrdersEl) totalOrdersEl.textContent = ORDERS.length;
+            const revenues = ORDERS.filter(o => o.status === "Delivered" || o.status === "Order Processed").reduce((sum, o) => sum + Number(o.subtotal), 0);
+            if (totalRevEl) totalRevEl.textContent = `Rs. ${revenues.toLocaleString()}`;
+
+            // Render Orders Ledger
+            // =================================================================
+        // LOCATE THIS INSIDE renderDashboardMetrics() UNDER SECTION 5
+        // =================================================================
+        
+        // Render Orders Ledger
+        if (orderBody) {
+            if (ORDERS.length === 0) {
+                orderBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400 text-xs">No remote spreadsheet orders recorded.</td></tr>`;
+            } else {
+                orderBody.innerHTML = ORDERS.map(order => {
+                    let parsedItems = [];
+                    try {
+                        parsedItems = JSON.parse(order.items);
+                    } catch(e) {
+                        parsedItems = [{name: order.items, quantity: 1}];
+                    }
+
+                    // 1. PLACE THE GEOTAG MAP PIN VARIABLE GENERATOR HERE:
+                    let locationBadgeMarkup = "";
+                    if (order.geotag && order.geotag.trim() !== "") {
+                        const cleanCoords = order.geotag.trim();
+                        const mapsUrl = `https://www.google.com/maps?q=${cleanCoords}`;
+                        locationBadgeMarkup = `
+                            <a href="${mapsUrl}" target="_blank" title="Open Map Coordinates" class="mt-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-[9px] font-bold px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 transition">
+                                <i data-lucide="map-pin" class="w-2.5 h-2.5"></i> Maps Link
+                            </a>
+                        `;
+                    } else {
+                        locationBadgeMarkup = `<span class="text-[9px] text-slate-400 mt-1 block font-mono">No Geotag</span>`;
+                    }
+
+                    // Parse unique whatsapp targets to support segmenting
+                    const routingGroups = parsedItems.reduce((acc, curr) => {
+                        const matched = PRODUCTS.find(p => p.name === curr.name);
+                        const wa = matched ? matched.whatsapp : DEFAULT_WHATSAPP;
+                        if (!acc[wa]) acc[wa] = [];
+                        acc[wa].push(curr);
+                        return acc;
+                    }, {});
+
+                    const dispatchActionsMarkup = Object.keys(routingGroups).map((wa, idx) => {
+                        let strMsg = `🛒 *Admin Dispatch Split*\n\n`;
+                        strMsg += `👤 *Customer:* ${order.customername}\n📞 *Contact:* ${order.contactphone}\n`;
+                        strMsg += `📦 *Package:* ${routingGroups[wa].map(i => `${i.name} (x${i.quantity})`).join(', ')}`;
+                        return `
+                            <a href="https://wa.me/${wa}?text=${encodeURIComponent(strMsg)}" target="_blank" class="bg-slate-900 hover:bg-slate-800 text-white text-[9px] px-1.5 py-1 rounded inline-flex items-center gap-1 cursor-pointer">
+                                <i data-lucide="share" class="w-2.5 h-2.5"></i> Spl-${idx+1}
+                            </a>
+                        `;
+                    }).join(' ');
+
+                    // 2. INJECT ${locationBadgeMarkup} IN THE SECOND TABLE CELL (td) BELOW:
+                    return `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-2.5">
+                                <div class="font-bold text-slate-900">${order.orderid}</div>
+                                <div class="text-[9px] text-slate-400 mt-0.5">${order.timestamp}</div>
+                            </td>
+                            <td class="p-2.5">
+                                <div class="font-semibold text-slate-800">${order.customername} (${order.contactphone})</div>
+                                <div class="text-[10px] text-slate-500 truncate max-w-xs mt-0.5">${parsedItems.map(i => `${i.name} x${i.quantity}`).join(', ')}</div>
+                                
+                                <!-- Map Pin Badge appears right under customer items -->
+                                ${locationBadgeMarkup}
+                            </td>
+                            <td class="p-2.5">
+                                <select onchange="updateDatabaseOrderStatus('${order.orderid}', 'status', this.value)" class="bg-slate-50 border border-slate-200 rounded px-1.5 py-1 text-[10px] font-semibold text-slate-700">
+                                    <option value="Order Received" ${order.status === "Order Received" ? 'selected' : ''}>Order Received</option>
+                                    <option value="Order Processed" ${order.status === "Order Processed" ? 'selected' : ''}>Order Processed</option>
+                                    <option value="In Transit" ${order.status === "In Transit" ? 'selected' : ''}>In Transit</option>
+                                    <option value="Delivered" ${order.status === "Delivered" ? 'selected' : ''}>Delivered</option>
+                                    <option value="Cancelled" ${order.status === "Cancelled" ? 'selected' : ''}>Cancelled</option>
+                                </select>
+                            </td>
+                            <td class="p-2.5">
+                                <select onchange="updateDatabaseOrderStatus('${order.orderid}', 'financials', this.value)" class="bg-slate-50 border border-slate-200 rounded px-1.5 py-1 text-[10px] font-semibold text-slate-700">
+                                    <option value="Pending Settlement" ${order.financials === "Pending Settlement" ? 'selected' : ''}>Pending Settlement</option>
+                                    <option value="Cleared" ${order.financials === "Cleared" ? 'selected' : ''}>Cleared</option>
+                                    <option value="Refunded" ${order.financials === "Refunded" ? 'selected' : ''}>Refunded</option>
+                                </select>
+                            </td>
+                            <td class="p-2.5 text-right space-x-1 whitespace-nowrap">${dispatchActionsMarkup}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+            // Render Products Management
+            if (listWrapper) {
+                if(PRODUCTS.length === 0) {
+                    listWrapper.innerHTML = `<div class="text-center py-10 text-slate-400"><p class="text-xs">Empty Database.</p></div>`;
+                } else {
+                    listWrapper.innerHTML = PRODUCTS.map(p => `
+                        <div class="flex items-center justify-between border border-slate-100 rounded-lg p-2 bg-slate-50 text-xs mb-2">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <img src="${p.image}" class="w-8 h-8 object-cover rounded bg-white border shrink-0" onerror="this.src='${FALLBACK_PLACEHOLDER}'">
+                                <div class="min-w-0">
+                                    <h4 class="font-medium text-slate-800 truncate">${p.name}</h4>
+                                    <span class="text-[10px] text-slate-400">${p.category} • Rs.${Number(p.price).toLocaleString()}</span>
+                                </div>
+                            </div>
+                            <button onclick="removeDatabaseProduct(${p.id})" class="text-slate-400 hover:text-red-500 p-1 transition cursor-pointer">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    `).join('');
+                }
+            }
+            lucide.createIcons();
+        }
+
+        async function updateDatabaseOrderStatus(orderId, type, value) {
+            if (!SCRIPT_URL || SCRIPT_URL.includes("YOUR_SPREADSHEET")) return;
+            try {
+                let bodyParams = { action: "updateOrderStatus", orderId: orderId };
+                if (type === 'status') bodyParams.status = value;
+                if (type === 'financials') bodyParams.financials = value;
+
+                await fetch(SCRIPT_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(bodyParams)
+                });
+                triggerLocalNotification("Order Updated Successfully", `Status altered to: ${value}`);
+            } catch (err) {
+                console.error("Cloud status update failed:", err);
+            }
+        }
+
+        async function handleCreateProduct(e) {
             e.preventDefault();
-            
             const name = document.getElementById('dash-prod-name').value.trim();
             const category = document.getElementById('dash-prod-cat').value.trim();
+            const brand = document.getElementById('dash-prod-brand').value.trim();
             const price = parseInt(document.getElementById('dash-prod-price').value);
             const urlInput = document.getElementById('dash-prod-url').value.trim();
+            const whatsappInput = document.getElementById('dash-prod-whatsapp').value.trim() || DEFAULT_WHATSAPP;
             const fileInput = document.getElementById('dash-prod-img');
-            const file = fileInput.files[0];
+            const file = fileInput ? fileInput.files[0] : null;
 
-            const finalizeProduct = (imgSrc) => {
-                const newProduct = {
-                    id: Date.now(),
+            const sendToCloud = async (imageString) => {
+                const payload = {
+                    action: "addProduct",
                     name: name,
-                    price: price,
                     category: category,
-                    image: imgSrc || FALLBACK_PLACEHOLDER
+                    brand: brand,
+                    price: price,
+                    whatsapp: whatsappInput,
+                    image: imageString
                 };
 
-                customProducts.push(newProduct);
-                localStorage.setItem('quickshop_custom_products', JSON.stringify(customProducts));
-                PRODUCTS = [...BASE_PRODUCTS, ...customProducts];
-                
+                if (SCRIPT_URL && !SCRIPT_URL.includes("YOUR_SPREADSHEET")) {
+                    await fetch(SCRIPT_URL, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                }
                 document.getElementById('add-product-form').reset();
-                renderDashboardMetrics();
+                triggerLocalNotification("Product Appended", `${name} added to spreadsheet pipeline.`);
+                syncDataFromCloud();
             };
 
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(event) {
-                    finalizeProduct(event.target.result);
+                reader.onload = function(evt) {
+                    sendToCloud(evt.target.result);
                 };
                 reader.readAsDataURL(file);
-            } else if (urlInput) {
-                finalizeProduct(urlInput);
             } else {
-                finalizeProduct(FALLBACK_PLACEHOLDER);
+                sendToCloud(urlInput || FALLBACK_PLACEHOLDER);
             }
         }
 
-        function removeCustomProduct(id) {
-            customProducts = customProducts.filter(p => p.id !== id);
-            localStorage.setItem('quickshop_custom_products', JSON.stringify(customProducts));
-            PRODUCTS = [...BASE_PRODUCTS, ...customProducts];
-            renderDashboardMetrics();
-        }
-
-        function clearCustomCache() {
-            if(confirm("Confirm action: Empty localized application database registry items?")) {
-                customProducts = [];
-                localStorage.removeItem('quickshop_custom_products');
-                PRODUCTS = [...BASE_PRODUCTS];
-                renderDashboardMetrics();
+        async function removeDatabaseProduct(id) {
+            if(!confirm("Are you sure you want to delete this product catalog row?")) return;
+            if (SCRIPT_URL && !SCRIPT_URL.includes("YOUR_SPREADSHEET")) {
+                await fetch(SCRIPT_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "deleteProduct", id: id })
+                });
             }
+            syncDataFromCloud();
         }
 
-        function copyProductionCode() {
-            const copyText = document.getElementById("lean-code-box");
-            copyText.select();
-            copyText.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(copyText.value);
-            alert("📋 Dynamic dataset code array architecture safely copied to system clipboard!");
-        }
-
-        // 6b. EXCEL DATA TRUCKING ENGINES (CSV PARSER SANITIZATION)
-        function exportToExcel() {
-            let csvRows = [["ID", "Name", "Price", "Category", "ImageURL"]];
-            PRODUCTS.forEach(p => {
-                // Escape quotes for clean data presentation inside Excel grid spaces
-                const safeName = `"${p.name.replace(/"/g, '""')}"`;
-                const safeCategory = `"${p.category.replace(/"/g, '""')}"`;
-                csvRows.push([p.id, safeName, p.price, safeCategory, p.image]);
-            });
-
-            const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `QuickShop_Catalog_${Date.now()}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        function importFromExcel(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result;
-                const lines = text.split("\n").map(line => line.trim()).filter(line => line.length > 0);
-                
-                if (lines.length <= 1) {
-                    alert("The uploaded Excel sheet contains no layout matrix data lines.");
-                    return;
-                }
-
-                let newParsedItems = [];
-                // Process content skipping row 1 (headers)
-                for(let i = 1; i < lines.length; i++) {
-                    // Regex splitting commas safely while respecting encapsulating quotes
-                    const matches = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(",");
-                    if(matches.length >= 4) {
-                        const parsedName = matches[1].replace(/^"|"$/g, '').replace(/""/g, '"');
-                        const parsedPrice = parseInt(matches[2].replace(/[^\d]/g, '')) || 0;
-                        const parsedCategory = matches[3].replace(/^"|"$/g, '').replace(/""/g, '"');
-                        const parsedImg = matches[4] || FALLBACK_PLACEHOLDER;
-
-                        newParsedItems.push({
-                            id: Date.now() + i,
-                            name: parsedName,
-                            price: parsedPrice,
-                            category: parsedCategory,
-                            image: parsedImg
-                        });
-                    }
-                }
-
-                if(newParsedItems.length > 0) {
-                    customProducts = [...customProducts, ...newParsedItems];
-                    localStorage.setItem('quickshop_custom_products', JSON.stringify(customProducts));
-                    PRODUCTS = [...BASE_PRODUCTS, ...customProducts];
-                    renderDashboardMetrics();
-                    alert(`🎉 Successfully injected ${newParsedItems.length} products directly from spreadsheet record rows.`);
-                } else {
-                    alert("Could not extract any structural item listings from this spreadsheet structure.");
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        // 7. SHOPPING CART SYSTEM MANAGEMENT
+        // ==========================================
+        // 6. SHOPPING BAG & MULTI-CHANNEL DISPATCH
+        // ==========================================
         function updateCartUI() {
             const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
             if(totalItems > 0) {
@@ -673,14 +966,14 @@
                         <img src="${item.image}" alt="${item.name}" class="w-12 h-12 object-cover rounded-lg bg-slate-50 border border-slate-100 shrink-0" onerror="this.src='${FALLBACK_PLACEHOLDER}'">
                         <div class="flex-1 min-w-0">
                             <h4 class="text-xs font-medium text-slate-800 truncate leading-tight">${item.name}</h4>
-                            <p class="text-xs font-bold text-slate-900 mt-0.5">Rs. ${item.price.toLocaleString()}</p>
+                            <p class="text-xs font-bold text-slate-900 mt-0.5">Rs. ${Number(item.price).toLocaleString()}</p>
                             <div class="flex items-center gap-2 mt-1.5">
                                 <button onclick="changeQuantity(${item.id}, -1)" class="w-5 h-5 border border-slate-200 rounded flex items-center justify-center text-slate-500 hover:bg-slate-50 transition cursor-pointer text-[10px] font-bold">-</button>
                                 <span class="text-xs font-semibold text-slate-700 min-w-4 text-center">${item.quantity}</span>
                                 <button onclick="changeQuantity(${item.id}, 1)" class="w-5 h-5 border border-slate-200 rounded flex items-center justify-center text-slate-500 hover:bg-slate-50 transition cursor-pointer text-[10px] font-bold">+</button>
                             </div>
                         </div>
-                        <button onclick="removeFromCart(${item.id})" class="text-slate-400 hover:text-red-500 transition p-1 cursor-pointer"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                        <button onclick="removeFromCart(${item.id})" class="text-slate-400 hover:text-red-500 transition p-1 cursor-pointer z-20 relative"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                     </div>
                 `).join('');
             }
@@ -689,10 +982,10 @@
         }
 
         function addToCart(id) {
-            const product = PRODUCTS.find(p => p.id === id);
+            const product = PRODUCTS.find(p => Number(p.id) === id);
             if (!product) return;
 
-            const existingItem = cart.find(item => item.id === id);
+            const existingItem = cart.find(item => Number(item.id) === id);
             if (existingItem) {
                 existingItem.quantity += 1;
             } else {
@@ -703,18 +996,18 @@
         }
 
         function changeQuantity(id, amount) {
-            const item = cart.find(item => item.id === id);
+            const item = cart.find(item => Number(item.id) === id);
             if (!item) return;
 
             item.quantity += amount;
             if (item.quantity <= 0) {
-                cart = cart.filter(i => i.id !== id);
+                cart = cart.filter(i => Number(i.id) !== id);
             }
             updateCartUI();
         }
 
         function removeFromCart(id) {
-            cart = cart.filter(item => item.id !== id);
+            cart = cart.filter(item => Number(item.id) !== id);
             updateCartUI();
         }
 
@@ -727,71 +1020,219 @@
         }
 
         function showForm() {
-            checkoutFormContainer.classList.remove('hidden');
+            const inputContainer = document.getElementById('checkout-form-container-inputs');
+            inputContainer.classList.remove('hidden');
             btnText.textContent = "Confirm via WhatsApp";
             isFormVisible = true;
         }
 
         function hideForm() {
-            checkoutFormContainer.classList.add('hidden');
+            const inputContainer = document.getElementById('checkout-form-container-inputs');
+            if(inputContainer) inputContainer.classList.add('hidden');
             btnText.textContent = "Proceed to Checkout";
             isFormVisible = false;
         }
 
-        // 8. WHATSAPP API ORDER ROUTER
-        function handleCheckout() {
-            if (!isFormVisible) {
-                showForm();
+        function acquireGeoTag() {
+            const geoInput = document.getElementById('cust-geotag');
+            const addressInput = document.getElementById('cust-address');
+            
+            if (!navigator.geolocation) {
+                alert("Geolocation tracking unavailable on this device.");
                 return;
             }
-
-            const nameInput = document.getElementById('cust-name').value.trim();
-            const phoneInput = document.getElementById('cust-phone').value.trim();
-
-            if (!nameInput || !phoneInput) {
-                alert("Please fill out your contact details to safely transfer your order string.");
-                return;
-            }
-
-            let message = `🛒 *New Order from QuickShop*\n\n`;
-            message += `👤 *Customer Details:*\n`;
-            message += `• Name: ${nameInput}\n`;
-            message += `• Contact: ${phoneInput}\n\n`;
-            message += `📦 *Order Breakdown:*\n`;
-
-            cart.forEach(item => {
-                message += `- ${item.name} (x${item.quantity}) — Rs. ${(item.price * item.quantity).toLocaleString()}\n`;
-            });
-
-            const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-            message += `\n💰 *Total Payable:* Rs. ${subtotal.toLocaleString()}`;
-
-            const targetNumber = phoneInput.replace(/\+/g, '').replace(/\s/g, '');
-            const encodedText = encodeURIComponent(message);
-            const whatsappUrl = `https://wa.me/${targetNumber}?text=${encodedText}`;
-
-            cart = [];
-            localStorage.removeItem('quickshop_cart');
-            updateCartUI();
-            closeCart();
-            hideForm();
-            document.getElementById('cust-name').value = "";
-            document.getElementById('cust-phone').value = "";
-
-            window.open(whatsappUrl, '_blank');
+            
+            addressInput.placeholder = "Locating position matrix...";
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude.toFixed(6);
+                    const lng = position.coords.longitude.toFixed(6);
+                    geoInput.value = `${lat},${lng}`;
+                    addressInput.value = `📍 [Geo-Tagged: ${lat}, ${lng}] `;
+                    addressInput.focus();
+                },
+                (error) => {
+                    addressInput.placeholder = "Complete Delivery Address";
+                    alert("Location request rejected or timeout occurred.");
+                },
+                { enableHighAccuracy: true, timeout: 7000 }
+            );
         }
 
-        // 9. EVENT REGISTRATION RUNTIME COUPLING
+        // 3-Level Data Masking Utility
+        function maskSensitiveData(dataStr, level = 1) {
+            if (!dataStr) return "";
+            const cleanStr = dataStr.toString().trim();
+            if (level === 1) {
+                return cleanStr.length <= 6 ? cleanStr : cleanStr.substring(0, 3) + "******" + cleanStr.substring(cleanStr.length - 3);
+            } else if (level === 2) {
+                return cleanStr.length <= 4 ? "••••" : "•••• •••• " + cleanStr.substring(cleanStr.length - 4);
+            } else {
+                return "[SECURE TOKEN REDACTED]";
+            }
+        }
+
+        // ==========================================
+        // 7. DIRECT ORDER PROCESSOR & WHATSAPP REDIRECT
+        // ==========================================
+        async function handleCheckout() {
+            const inputContainer = document.getElementById('checkout-form-container-inputs');
+            
+            // Step 1: Reveal customer details form if hidden
+            if (inputContainer.classList.contains('hidden')) {
+                inputContainer.classList.remove('hidden');
+                document.getElementById('btn-text').textContent = "Confirm & Dispatch WhatsApp";
+                return; 
+            }
+
+            // Step 2: Validate input parameters
+            const name = document.getElementById('cust-name').value.trim();
+            const phone = document.getElementById('cust-phone').value.trim();
+            const address = document.getElementById('cust-address').value.trim();
+            const geoTag = document.getElementById('cust-geotag').value.trim();
+
+            if (!name || !phone || !address) {
+                alert("Provide checkout variables: Name, Phone, and Address are required.");
+                return;
+            }
+
+            const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+            const itemsString = JSON.stringify(cart.map(i => ({ name: i.name, quantity: i.quantity })));
+
+            // Disable button during processing
+            const checkoutButton = document.getElementById('checkout-btn');
+            checkoutButton.disabled = true;
+            document.getElementById('btn-text').textContent = "Syncing with Cloud...";
+
+            // Post Order to Google Sheets database pipeline
+            if (SCRIPT_URL && !SCRIPT_URL.includes("YOUR_SPREADSHEET")) {
+                try {
+                    await fetch(SCRIPT_URL, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            action: "addOrder",
+                            customerName: name,
+                            contactPhone: phone,
+                            address: address,
+                            geoTag: geoTag,
+                            items: itemsString,
+                            subtotal: subtotal
+                        })
+                    });
+                    
+                    // Chrome Native Push Notification
+                    triggerLocalNotification("Ledger Synchronized! 🎉", `Order stored successfully.`);
+                } catch(e) {
+                    console.error("Sheet writing error:", e);
+                }
+            }
+
+            // Generate beautifully sorted WhatsApp manifest message block
+            let manifestMsg = `📦 *NEW ORDER INCOMING* 🚀\n`;
+            manifestMsg += `━━━━━━━━━━━━━━━━━━━━\n`;
+            manifestMsg += `👤 *Customer:* ${name}\n`;
+            manifestMsg += `📞 *WhatsApp:* ${phone}\n`;
+            manifestMsg += `📍 *Delivery Address:* ${address}\n`;
+            if (geoTag) {
+                manifestMsg += `🔗 *Geotag Location:* https://www.google.com/maps?q=${geoTag}\n`;
+            }
+            manifestMsg += `━━━━━━━━━━━━━━━━━━━━\n`;
+            manifestMsg += `🛒 *Ordered Items:* \n`;
+            
+            cart.forEach((item, idx) => {
+                const itemTotal = item.price * item.quantity;
+                manifestMsg += `🔹 _${idx + 1}. ${item.name}_ (x${item.quantity}) - *Rs. ${itemTotal.toLocaleString()}*\n`;
+            });
+            
+            manifestMsg += `━━━━━━━━━━━━━━━━━━━━\n`;
+            manifestMsg += `💰 *Grand Total:* *Rs. ${subtotal.toLocaleString()}*\n`;
+            manifestMsg += `⚡ _Sent via QuickShop Cloud System_`;
+
+            // Setup WhatsApp link and route checkout instantly to the main store operational phone
+            const encodedText = encodeURIComponent(manifestMsg);
+            const targetPhone = DEFAULT_WHATSAPP;
+            const waRedirectUrl = `https://wa.me/${targetPhone}?text=${encodedText}`;
+
+            // Reset local UI states
+            cart = [];
+            localStorage.removeItem('quickshop_cart');
+            
+            updateCartUI();
+            renderProducts();
+            closeCart();
+            
+            // Reset input values
+            document.getElementById('cust-name').value = "";
+            document.getElementById('cust-phone').value = "";
+            document.getElementById('cust-address').value = "";
+            document.getElementById('cust-geotag').value = "";
+            
+            hideForm();
+            checkoutButton.disabled = false;
+            
+            syncDataFromCloud();
+
+            // Redirect window to WhatsApp API
+            window.open(waRedirectUrl, '_blank');
+        } 
+
+        // 8. LIFECYCLE EVENT CONTROLLERS
+        // ==========================================
+        function expandSearch() {
+            bottomBarPill.style.maxWidth = "300px"; 
+            homeNavBtn.classList.add('hidden');
+            searchTriggerBtn.classList.add('hidden');
+            searchInputWrapper.classList.remove('hidden');
+            searchInputWrapper.classList.add('flex');
+            searchInput.focus();
+            document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function collapseSearch() {
+            bottomBarPill.style.maxWidth = "160px"; 
+            searchInputWrapper.classList.add('hidden');
+            searchInputWrapper.classList.remove('flex');
+            homeNavBtn.classList.remove('hidden');
+            searchTriggerBtn.classList.remove('hidden');
+        }
+
+        function resetSearch(e) {
+            if(e) e.preventDefault();
+            currentSearchQuery = "";
+            searchInput.value = "";
+            collapseSearch();
+            switchView('storefront');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function handleSearchInput(e) {
+            currentSearchQuery = e.target.value.toLowerCase().trim();
+            renderProducts();
+        }
+
         cartBtn.addEventListener('click', openCart);
         closeCartBtn.addEventListener('click', closeCart);
         cartOverlay.addEventListener('click', closeCart);
         searchTriggerBtn.addEventListener('click', expandSearch);
         searchCloseBtn.addEventListener('click', collapseSearch);
         searchInput.addEventListener('input', handleSearchInput);
-        checkoutBtn.addEventListener('click', handleCheckout);
+
+        const styleSheetNode = document.createElement("style");
+        styleSheetNode.textContent = `
+            @keyframes marquee {
+                0% { transform: translate3d(0, 0, 0); }
+                100% { transform: translate3d(-33.33%, 0, 0); }
+            }
+            .animate-marquee {
+                animation: marquee 25s linear infinite;
+            }
+        `;
+        document.head.appendChild(styleSheetNode);
 
         window.addEventListener('DOMContentLoaded', () => {
-            renderProducts();
+            syncDataFromCloud();
             updateCartUI();
         });
     </script>
